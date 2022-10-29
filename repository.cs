@@ -1,35 +1,89 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Net;
+using static System.Reflection.Metadata.BlobBuilder;
 
-public class Class1
+namespace Books
 {
-    public Class1()
-        public List<books>{get all}
-	{
-        public IActionResult Get(Book Books_2)
+    public class BooksRepository
+    {
+        private string GetConnectionString()
         {
-            var connectionString = "server=DESCKTOP-G529-18\\SQLEXPRESS; database=Books;Integrated Security=true;";
+            return "server=DESKTOP-Q9NL26Q\\SQLEXPRESS;database=Books;Integrated Security=true;";
+        }
+
+        public List<Book> GetAll()
+        {
+            return this.ExecuteCommandWithQuery($"SELECT id, Name FROM Books");
+        }
+
+        public Book GetById(int id)
+        {
+            var books = this.ExecuteCommandWithQuery($"SELECT id, Name FROM Books WHERE id={id}");
+
+            return books.FirstOrDefault();
+        }
+
+        private List<Book> ExecuteCommandWithQuery(string command)
+        {
+            var connectionString = GetConnectionString();
 
             using (var connection = new SqlConnection(connectionString))
             {
-                var books = new List<Book>();
                 connection.Open();
+                var commandText = command;
+                List<Book> books = new List<Book>();
 
-                using (var sqlCommand = new SqlCommand("SELECT id, Name FROM Books", connection))
+                using (var sqlCommand = new SqlCommand(commandText, connection))
                 {
+
                     var reader = sqlCommand.ExecuteReader();
                     while (reader.Read())
                     {
                         books.Add(new Book
                         {
-                            ID = int.Parse(reader["Id"].ToString()),
+                            Id = int.Parse(reader["Id"].ToString()),
                             Name = reader["Name"].ToString(),
                         });
                     }
                 }
+                connection.Close();
+
+                return books;
+            }
+        }
+
+        public void Insert(Book book)
+        {
+            this.ExecuteCommand($"INSERT INTO Books(Name, Author_id) VALUES ('{book.Name}', {book.AuthorId})");
+        }
+
+        public void Update(Book book)
+        {
+            this.ExecuteCommand($"UPDATE Books SET Name = '{book.Name}', Author_Id= {book.AuthorId} WHERE Id={book.Id}");
+        }
+
+        public void Delete(int id)
+        {
+            this.ExecuteCommand($"DELETE FROM Books WHERE Id={id}");
+        }
+
+        private void ExecuteCommand(string command)
+        {
+            var connectionString = GetConnectionString();
+
+            using (var connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                var commandText = command;
+
+                using (var sqlCommand = new SqlCommand(commandText, connection))
+                {
+                    var reader = sqlCommand.ExecuteNonQuery();
+                }
 
                 connection.Close();
-                return books;
             }
         }
     }
